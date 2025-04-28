@@ -1,67 +1,12 @@
-# KeyForge
+# React + Vite
 
-A modern security toolkit for API key management and security analysis.
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
-## Features
+Currently, two official plugins are available:
 
-- **API Key Generator**: Create secure API keys with customizable options
-  - Configurable key length and character types
-  - Key strength indicator
-  - Copy to clipboard functionality
-  - Custom prefix/suffix support
-  
-- **Security Chat**: Interactive security assistant for cybersecurity guidance
-  - Real-time responses
-  - Voice support
-  - Copy functionality
-  
-- **API Analyzer**: Analyze API keys for potential security vulnerabilities
-  - Security score assessment
-  - Risk factor analysis
-  - PDF report generation
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
 
-## Getting Started
+## Expanding the ESLint configuration
 
-### Prerequisites
-
-- Node.js (v16 or higher)
-- npm (v7 or higher)
-
-### Installation
-
-1. Clone the repository:
-```bash
-git clone [your-repo-url]
-cd keyforge
-```
-
-2. Install dependencies:
-```bash
-npm install
-```
-
-3. Start the development server:
-```bash
-npm run dev
-```
-
-4. Open [http://localhost:5173](http://localhost:5173) in your browser.
-
-## Technologies Used
-
-- React
-- Vite
-- TailwindCSS
-- React PDF
-
-## Contributing
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
-## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+If you are developing a production application, we recommend using TypeScript and enable type-aware lint rules. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
