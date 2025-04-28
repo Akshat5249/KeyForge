@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useContext } from 'react';
 import { AlertTriangle, Check, Wifi, Shield, ActivitySquare } from 'lucide-react';
+import { ThemeContext } from '../context/ThemeContext';
 
 const NetworkSecurityChatbot = () => {
+  const { isDarkMode } = useContext(ThemeContext);
   const [step, setStep] = useState('welcome'); 
   const [connectionStatus, setConnectionStatus] = useState('connected');
   const [networkSpeed, setNetworkSpeed] = useState({ download: 0, upload: 0 });
@@ -15,6 +17,27 @@ const NetworkSecurityChatbot = () => {
   const [securityScore, setSecurityScore] = useState(0);
   const [recommendations, setRecommendations] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState('');
+  const messagesEndRef = useRef(null);
+  const API_KEY = "AIzaSyAFWuD7AvPWLPmk1lkc8o45OUJ9v59Fh6Q";
+  const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  useEffect(() => {
+    const welcomeMessage = {
+      role: "assistant",
+      content: "Hello! I'm your Network Security Assistant. I can help you with network security concepts, protocols, best practices, and troubleshooting. What would you like to know?"
+    };
+    setMessages([welcomeMessage]);
+  }, []);
 
   useEffect(() => {
     const intervalId = setInterval(() => {
@@ -161,6 +184,68 @@ const NetworkSecurityChatbot = () => {
     });
     setSecurityScore(0);
     setRecommendations([]);
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!input.trim()) return;
+
+    const userMessage = { role: "user", content: input };
+    setMessages(prev => [...prev, userMessage]);
+    setInput('');
+    setLoading(true);
+
+    try {
+      const response = await fetch(`${API_URL}?key=${API_KEY}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                {
+                  text: `You are a Network Security Assistant chatbot. Provide helpful, accurate network security advice. 
+                  The user's message is: ${input}
+                  Keep your response concise and focused on network security, protocols, encryption, firewalls, and related topics.
+                  IMPORTANT: Do not use asterisks or markdown formatting in your responses. Provide plain text responses only.`
+                }
+              ]
+            }
+          ]
+        })
+      });
+
+      const data = await response.json();
+      
+      let assistantResponse;
+      if (data.candidates && data.candidates[0].content.parts[0].text) {
+        assistantResponse = data.candidates[0].content.parts[0].text.replace(/\*/g, '');
+      } else {
+        assistantResponse = "I'm sorry, I couldn't generate a response. Please try again.";
+      }
+
+      const assistantMessage = { role: "assistant", content: assistantResponse };
+      setMessages(prev => [...prev, assistantMessage]);
+    } catch (error) {
+      console.error("Error:", error);
+      const errorMessage = { 
+        role: "assistant", 
+        content: "Sorry, there was an error processing your request. Please check your API key and try again." 
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const clearChat = () => {
+    const welcomeMessage = {
+      role: "assistant",
+      content: "Chat cleared. How else can I help with your network security questions?"
+    };
+    setMessages([welcomeMessage]);
   };
 
   const renderConnectionStatus = () => {
@@ -360,29 +445,104 @@ const NetworkSecurityChatbot = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <header className="bg-white shadow-sm p-4">
+    <div className={`min-h-screen ${isDarkMode ? 'bg-gray-900' : 'bg-white'} text-gray-800 flex flex-col`}>
+      <header className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-blue-700 border-blue-800'} p-4 shadow-lg border-b`}>
         <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <div className="flex items-center">
-            <Shield className="text-blue-600" size={28} />
-            <h1 className="ml-2 text-xl font-bold">Network Security Analyzer</h1>
+          <div className="flex items-center space-x-2">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+            <h1 className="text-2xl font-bold text-white">Network Security Assistant</h1>
           </div>
-          <div className="text-sm text-gray-500">v1.0</div>
+          <button 
+            onClick={clearChat}
+            className={`text-white hover:text-gray-200 ${
+              isDarkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-blue-800 hover:bg-blue-900'
+            } px-3 py-1 rounded-lg text-sm transition-colors`}
+          >
+            Clear Chat
+          </button>
         </div>
       </header>
       
-      <main className="flex-grow">
-        <div className="max-w-4xl mx-auto px-4 py-8">
-          {renderConnectionStatus()}
-          
-          <div className="bg-white p-6 rounded-lg shadow-md">
-            {renderContent()}
-          </div>
+      <main className="flex-1 max-w-4xl w-full mx-auto p-4 overflow-auto">
+        <div className="space-y-4 mb-4">
+          {messages.map((message, index) => (
+            <div 
+              key={index} 
+              className={`p-4 rounded-lg max-w-3xl ${
+                message.role === "user" 
+                  ? `${isDarkMode ? 'bg-blue-900 border-blue-800' : 'bg-blue-100 border-blue-200'} shadow-sm ml-auto border` 
+                  : `${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} shadow-sm mr-auto border-l-4 border-blue-700`
+              }`}
+            >
+              <div className="flex justify-between items-start mb-2">
+                <div className={`font-medium text-sm ${isDarkMode ? 'text-gray-300' : 'text-gray-600'}`}>
+                  {message.role === "user" ? "You" : "Network Security Assistant"}
+                </div>
+                {message.role === "assistant" && (
+                  <button 
+                    onClick={() => navigator.clipboard.writeText(message.content)}
+                    className={`${isDarkMode ? 'text-gray-400 hover:text-blue-400' : 'text-gray-500 hover:text-blue-700'} p-1 rounded-full transition-colors`}
+                    title="Copy to clipboard"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                    </svg>
+                  </button>
+                )}
+              </div>
+              <p className={`whitespace-pre-wrap leading-relaxed ${isDarkMode ? 'text-gray-200' : 'text-gray-800'}`}>{message.content}</p>
+            </div>
+          ))}
+          {isLoading && (
+            <div className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'} p-4 rounded-lg max-w-3xl mr-auto border-l-4 border-blue-700 shadow-sm`}>
+              <div className="flex space-x-2">
+                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse delay-100"></div>
+                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse delay-200"></div>
+              </div>
+            </div>
+          )}
+          <div ref={messagesEndRef} />
         </div>
       </main>
       
-      <footer className="bg-gray-800 text-gray-300 p-4 text-center text-sm">
-        Network Security Analyzer &copy; {new Date().getFullYear()} | All rights reserved
+      <footer className={`${isDarkMode ? 'bg-gray-800 border-gray-700' : 'bg-gray-100 border-gray-200'} border-t p-4 shadow-inner`}>
+        <form onSubmit={handleSubmit} className="max-w-4xl mx-auto flex">
+          <input
+            type="text"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Ask about network security, protocols, or best practices..."
+            className={`flex-1 ${
+              isDarkMode 
+                ? 'bg-gray-700 text-white placeholder-gray-400 border-gray-600' 
+                : 'bg-white text-gray-800 placeholder-gray-400 border-gray-300'
+            } p-3 rounded-l-lg focus:outline-none focus:ring-2 focus:ring-blue-500 border shadow-sm`}
+            disabled={isLoading}
+          />
+          <button
+            type="submit"
+            className={`px-4 py-3 rounded-r-lg transition-colors flex items-center justify-center ${
+              isLoading || !input.trim() 
+                ? 'bg-gray-300 text-gray-500 cursor-not-allowed' 
+                : 'bg-blue-600 hover:bg-blue-700 text-white'
+            }`}
+            disabled={isLoading || !input.trim()}
+          >
+            {isLoading ? (
+              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+            ) : (
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+              </svg>
+            )}
+          </button>
+        </form>
+        <div className={`max-w-4xl mx-auto mt-2 text-xs ${isDarkMode ? 'text-gray-400' : 'text-gray-500'} text-center`}>
+          Network Security Assistant provides general information, not professional security services. Always consult security professionals for critical matters.
+        </div>
       </footer>
     </div>
   );
